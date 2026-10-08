@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="cache-control" content="no-cache">
+<title>재원부 대표전화 (7141 당직)</title>
+<style>
+ body {margin:0; background:#f3f4f6; font-family:'맑은 고딕','Malgun Gothic','Apple SD Gothic Neo',sans-serif; color:#111;}
+ .wrap {max-width:440px; margin:0 auto; padding:18px 14px 30px;}
+ h1 {font-size:19px; margin:4px 0 2px;}
+ .sub {color:#666; font-size:13px; margin-bottom:14px;}
+ .tabs {display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;}
+ .tabs button {flex:1; min-width:84px; padding:9px 4px; border:1px solid #ccc; background:#fff; border-radius:10px;
+               font-size:15px; font-family:inherit; cursor:pointer;}
+ .tabs button.on {background:#111; color:#fff; border-color:#111; font-weight:700;}
+ .card {background:#ffff00; border-radius:14px; padding:18px 20px; box-shadow:0 2px 8px rgba(0,0,0,.08);}
+ .card .d {color:#e00000; font-weight:800; font-size:22px;}
+ .card .p {font-size:15px; margin:2px 0 12px;}
+ .g {display:grid; grid-template-columns:2.1em 1fr; align-items:baseline;}
+ .no {font-weight:700; font-size:18px;}
+ .t {font-weight:700; font-size:18px;}
+ .n {grid-column:2; font-weight:800; font-size:21px; margin:1px 0 10px;}
+ .n span {font-weight:400; font-size:16px;}
+ .now {background:#fff; border-radius:8px; padding:0 6px; margin-left:-6px;}
+ .e {color:#e00000; font-weight:700; font-size:17px; margin-top:2px;}
+ .empty {background:#fff; border-radius:14px; padding:26px; text-align:center; color:#666;}
+ .foot {color:#999; font-size:12px; margin-top:14px; text-align:center;}
+</style></head>
+<body><div class="wrap">
+ <h1>재원부 대표전화 (7141 당직)</h1>
+ <div class="sub" id="sub"></div>
+ <div class="tabs" id="tabs"></div>
+ <div id="view"></div>
+ <div class="foot">마지막 갱신 2026-10-08 10:55</div>
+</div>
+<script>
+const DATA = {"2026-10-12": [{"no": 1, "time": "09:00-10:10", "name": "한순이"}, {"no": 2, "time": "10:10-11:20", "name": "최문규"}, {"no": 3, "time": "13:00-14:00", "name": "황상기"}, {"no": 4, "time": "14:00-15:00", "name": "박종식"}, {"no": 5, "time": "15:00-16:00", "name": "맹성수"}, {"no": 6, "time": "16:00-17:00", "name": "조윤화"}]};
+const PHONE = "* 대표전화 : 7141";
+const SUFFIX = "선배님";
+const WD = "일월화수목금토";
+function kstNow() { const n = new Date(); return new Date(n.getTime() + (n.getTimezoneOffset() + 540) * 60000); }
+function iso(d) { return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function label(k) { const [y,m,d] = k.split("-").map(Number); const x = new Date(y, m-1, d); return m + "/" + d + "(" + WD[x.getDay()] + ")"; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]); }
+const now = kstNow(), today = iso(now), mins = now.getHours()*60 + now.getMinutes();
+const keys = Object.keys(DATA).sort();
+const future = keys.filter(k => k >= today);
+let cur = future.length ? future[0] : (keys.length ? keys[keys.length-1] : null);
+function render() {
+  const tabs = document.getElementById("tabs"); tabs.innerHTML = "";
+  const show = future.slice(0, 3);
+  if (!show.includes(cur) && cur) show.unshift(cur);
+  show.forEach(k => {
+    const b = document.createElement("button");
+    b.textContent = (k === today ? "오늘 " : "") + label(k);
+    if (k === cur) b.className = "on";
+    b.onclick = () => { cur = k; render(); };
+    tabs.appendChild(b);
+  });
+  const v = document.getElementById("view");
+  if (!cur) { v.innerHTML = '<div class="empty">아직 올라온 당직표가 없습니다.</div>'; return; }
+  const items = DATA[cur] || [];
+  let h = '<div class="card"><div class="d">&lt;' + label(cur) + '&gt;</div><div class="p">' + esc(PHONE) + '</div><div class="g">';
+  items.forEach(it => {
+    const [a, b] = it.time.split("-"); const toM = s => { const [hh, mm] = s.split(":").map(Number); return hh*60+mm; };
+    const on = (cur === today && mins >= toM(a) && mins < toM(b)) ? " now" : "";
+    h += '<div class="no">' + it.no + '.</div><div class="t' + on + '">' + esc(it.time) + (on ? " ← 지금" : "") + '</div>'
+       + '<div class="n">' + esc(it.name) + ' <span>' + esc(SUFFIX) + '</span></div>';
+  });
+  h += '</div><div class="e">∘ 이상 ' + items.length + '명</div></div>';
+  v.innerHTML = h;
+  document.getElementById("sub").textContent = cur === today ? "오늘 당직 순번" : (cur > today ? "예정된 당직 순번" : "최근 당직 순번");
+}
+render();
+</script>
+</body></html>
