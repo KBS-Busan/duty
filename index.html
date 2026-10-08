@@ -32,10 +32,10 @@
  <div class="sub" id="sub"></div>
  <div class="tabs" id="tabs"></div>
  <div id="view"></div>
- <div class="foot">마지막 갱신 2026-10-08 10:55</div>
+ <div class="foot">마지막 갱신 2026-10-08 11:15</div>
 </div>
 <script>
-const DATA = {"2026-10-12": [{"no": 1, "time": "09:00-10:10", "name": "한순이"}, {"no": 2, "time": "10:10-11:20", "name": "최문규"}, {"no": 3, "time": "13:00-14:00", "name": "황상기"}, {"no": 4, "time": "14:00-15:00", "name": "박종식"}, {"no": 5, "time": "15:00-16:00", "name": "맹성수"}, {"no": 6, "time": "16:00-17:00", "name": "조윤화"}]};
+const DATA = {"2026-10-12": [{"no": 1, "time": "09:00-10:10", "name": "한순이"}, {"no": 2, "time": "10:10-11:20", "name": "최문규"}, {"no": 3, "time": "13:00-14:00", "name": "조윤화"}, {"no": 4, "time": "14:00-15:00", "name": "맹성수"}, {"no": 5, "time": "15:00-16:00", "name": "황상기"}, {"no": 6, "time": "16:00-17:00", "name": "정다겸"}]};
 const PHONE = "* 대표전화 : 7141";
 const SUFFIX = "선배님";
 const WD = "일월화수목금토";
@@ -45,32 +45,49 @@ function label(k) { const [y,m,d] = k.split("-").map(Number); const x = new Date
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]); }
 const now = kstNow(), today = iso(now), mins = now.getHours()*60 + now.getMinutes();
 const keys = Object.keys(DATA).sort();
-const future = keys.filter(k => k >= today);
-let cur = future.length ? future[0] : (keys.length ? keys[keys.length-1] : null);
-function render() {
-  const tabs = document.getElementById("tabs"); tabs.innerHTML = "";
-  const show = future.slice(0, 3);
-  if (!show.includes(cur) && cur) show.unshift(cur);
-  show.forEach(k => {
-    const b = document.createElement("button");
-    b.textContent = (k === today ? "오늘 " : "") + label(k);
-    if (k === cur) b.className = "on";
-    b.onclick = () => { cur = k; render(); };
-    tabs.appendChild(b);
-  });
-  const v = document.getElementById("view");
-  if (!cur) { v.innerHTML = '<div class="empty">아직 올라온 당직표가 없습니다.</div>'; return; }
-  const items = DATA[cur] || [];
-  let h = '<div class="card"><div class="d">&lt;' + label(cur) + '&gt;</div><div class="p">' + esc(PHONE) + '</div><div class="g">';
+function isWork(d) { return d.getDay() !== 0 && d.getDay() !== 6; }
+function stepWork(k, dir) {   // 주말 건너뛴 이전/다음 평일 (공휴일은 자료 유무로 판단)
+  const [y,m,d] = k.split("-").map(Number); const x = new Date(y, m-1, d);
+  do { x.setDate(x.getDate() + dir); } while (!isWork(x));
+  return iso(x);
+}
+// 어제 = 오늘 이전 마지막 당직일, 내일 = 오늘 이후 첫 당직일 (없으면 다음 평일)
+const past = keys.filter(k => k < today), fut = keys.filter(k => k > today);
+const SLOTS = [
+  ["어제", past.length ? past[past.length-1] : stepWork(today, -1)],
+  ["오늘", today],
+  ["내일", fut.length ? fut[0] : stepWork(today, 1)],
+];
+let cur = 1;
+function card(k) {
+  const items = DATA[k];
+  if (!items) {
+    const [y,m,d] = k.split("-").map(Number); const wk = isWork(new Date(y, m-1, d));
+    const msg = k === today && !wk ? "오늘은 주말이라 당직이 없습니다."
+              : k > today ? "아직 올라오지 않았습니다.<br>전날 17시 이후 게시됩니다."
+              : "당직 기록이 없습니다. (휴일)";
+    return '<div class="card"><div class="d">&lt;' + label(k) + '&gt;</div><div class="p" style="margin-top:10px">' + msg + '</div></div>';
+  }
+  let h = '<div class="card"><div class="d">&lt;' + label(k) + '&gt;</div><div class="p">' + esc(PHONE) + '</div><div class="g">';
   items.forEach(it => {
     const [a, b] = it.time.split("-"); const toM = s => { const [hh, mm] = s.split(":").map(Number); return hh*60+mm; };
-    const on = (cur === today && mins >= toM(a) && mins < toM(b)) ? " now" : "";
+    const on = (k === today && mins >= toM(a) && mins < toM(b)) ? " now" : "";
     h += '<div class="no">' + it.no + '.</div><div class="t' + on + '">' + esc(it.time) + (on ? " ← 지금" : "") + '</div>'
        + '<div class="n">' + esc(it.name) + ' <span>' + esc(SUFFIX) + '</span></div>';
   });
-  h += '</div><div class="e">∘ 이상 ' + items.length + '명</div></div>';
-  v.innerHTML = h;
-  document.getElementById("sub").textContent = cur === today ? "오늘 당직 순번" : (cur > today ? "예정된 당직 순번" : "최근 당직 순번");
+  return h + '</div><div class="e">∘ 이상 ' + items.length + '명</div></div>';
+}
+function render() {
+  const tabs = document.getElementById("tabs"); tabs.innerHTML = "";
+  SLOTS.forEach(([name, k], i) => {
+    const b = document.createElement("button");
+    b.innerHTML = '<b>' + name + '</b><br><span style="font-size:12px">' + label(k) + '</span>';
+    if (i === cur) b.className = "on";
+    b.onclick = () => { cur = i; render(); };
+    tabs.appendChild(b);
+  });
+  document.getElementById("view").innerHTML = card(SLOTS[cur][1]);
+  document.getElementById("sub").textContent = SLOTS[cur][0] + " 당직 순번";
 }
 render();
 </script>
